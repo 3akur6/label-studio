@@ -11,6 +11,7 @@ import { ListModel } from "./List";
 // stub files to keep docs of these tags
 import "./HyperText";
 import "./Text";
+import "./Packet";
 
 export {
   AudioModel,

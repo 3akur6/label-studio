@@ -448,6 +448,8 @@ SUPPORTED_EXTENSIONS = set(
         '.mp3',
         '.ogg',
         '.png',
+        '.pcap',
+        '.pcapng',
         '.svg',
         '.tsv',
         '.txt',

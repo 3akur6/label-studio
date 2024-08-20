@@ -25,6 +25,7 @@ export const ViewColumnType = types.enumeration([
   "Audio",
   "AudioPlus",
   "Video",
+  "Packet",
   "Text",
   "HyperText",
   "TimeSeries",
@@ -41,6 +42,7 @@ const typeShortMap = {
   AudioPlus: "aud",
   Video: "vid",
   Text: "txt",
+  Packet: "pkt",
   HyperText: "html",
   TimeSeries: "ts",
 };
@@ -57,6 +59,7 @@ const typeNameMap = {
   AudioPlus: "Audio",
   Video: "Video",
   Text: "Text",
+  Packet: "Packet",
   HyperText: "Hyper Text",
   TimeSeries: "Time Series",
 };

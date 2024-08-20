@@ -20,6 +20,7 @@ const supportedExtensions = {
   video: ["mp4", "webp", "webm"],
   image: ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"],
   html: ["html", "htm", "xml"],
+  packet: ["pcap", "pcapng"],
   timeSeries: ["csv", "tsv"],
   common: ["csv", "tsv", "txt", "json"],
 };
@@ -386,6 +387,8 @@ export const ImportPage = ({
                   <dd>{supportedExtensions.image.join(", ")}</dd>
                   <dt>HTML</dt>
                   <dd>{supportedExtensions.html.join(", ")}</dd>
+                  <dt>Packets</dt>
+                  <dd>{supportedExtensions.packet.join(", ")}</dd>
                   <dt>Time Series</dt>
                   <dd>{supportedExtensions.timeSeries.join(", ")}</dd>
                   <dt>Common Formats</dt>

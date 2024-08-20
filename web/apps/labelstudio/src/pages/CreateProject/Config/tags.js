@@ -62,6 +62,19 @@ const OBJECTS = {
   Video: {
     type: "Video",
   },
+  Packet: {
+    type: "Packet",
+    settings: {
+      granularity: {
+        title: "Select text by words",
+        type: Boolean,
+        param: ($obj, value) =>
+          value ? $obj.setAttribute("granularity", "word") : $obj.removeAttribute("granularity"),
+        value: ($obj) => $obj.getAttribute("granularity") === "word",
+        when: ($obj) => $obj.$controls.filter((c) => c.tagName.endsWith("Labels")).length > 0,
+      },
+    },
+  },
 };
 
 const Labels = {
