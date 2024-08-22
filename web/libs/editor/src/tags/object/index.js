@@ -7,11 +7,11 @@ import { TimeSeriesModel } from "./TimeSeries";
 import { PagedViewModel } from "./PagedView";
 import { VideoModel } from "./Video";
 import { ListModel } from "./List";
+import { PacketModel } from "./Packet";
 
 // stub files to keep docs of these tags
 import "./HyperText";
 import "./Text";
-import "./Packet";
 
 export {
   AudioModel,
@@ -23,4 +23,5 @@ export {
   TableModel,
   PagedViewModel,
   ListModel,
+  PacketModel,
 };

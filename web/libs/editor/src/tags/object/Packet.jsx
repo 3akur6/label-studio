@@ -1,7 +1,18 @@
 // stub file to keep docs for Packet object tag
 
 import Registry from "../../core/Registry";
-import {HtxRichText, RichTextModel} from "./RichText";
+import {inject, observer} from "mobx-react";
+import {useEffect, useState} from "react";
+import {hexy} from "hexy";
+import {Buffer} from "buffer";
+import {types} from "mobx-state-tree";
+import {RichTextModel} from "./RichText";
+import ProcessAttrsMixin from "../../mixins/ProcessAttrs";
+import ObjectBase from "./Base";
+import IsReadyMixin from "../../mixins/IsReadyMixin";
+import RegionsMixin from "../../mixins/Regions";
+import { AnnotationMixin } from "../../mixins/AnnotationMixin";
+import {customTypes} from "../../core/CustomTypes";
 
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
@@ -34,4 +45,89 @@ import {HtxRichText, RichTextModel} from "./RichText";
  * @param {boolean} [showLabels]                          Whether or not to show labels next to the region; unset (by default) — use editor settings; true/false — override settings
  * @param {symbol|word|sentence|paragraph} [granularity]  Control region selection granularity
  */
-Registry.addTag("packet", RichTextModel, HtxRichText({ isText: true }));
+const TagAttrs = types.model("PacketModel", {
+  value: types.maybeNull(types.string),
+
+  /** Defines the type of data to be shown */
+  valuetype: types.optional(types.enumeration(["text", "url"]), () => (window.LS_SECURE_MODE ? "url" : "text")),
+
+  inline: false,
+
+  /** Whether or not to save selected text to the serialized data */
+  savetextresult: types.optional(types.enumeration(["none", "no", "yes"]), () =>
+    window.LS_SECURE_MODE ? "no" : "none",
+  ),
+
+  selectionenabled: types.optional(types.boolean, true),
+
+  clickablelinks: false,
+
+  highlightcolor: types.maybeNull(customTypes.color),
+
+  showlabels: types.maybeNull(types.boolean),
+
+  encoding: types.optional(types.enumeration(["none", "base64", "base64unicode"]), "none"),
+
+  granularity: types.optional(types.enumeration(["symbol", "word", "sentence", "paragraph"]), "symbol"),
+});
+
+const Model = types
+  .model("PacketModel", {
+    type: "packet",
+    _value: types.optional(types.string, ""),
+  });
+
+Model.views = RichTextModel.views;
+Model.volatile = RichTextModel.volatile;
+Model.actions = RichTextModel.actions;
+
+const HtxPacket = inject("store")(
+  observer(({ item }) => {
+    const [viewContentState, setViewContentState] = useState("");
+
+    useEffect(() => {
+      const data = item._value;
+
+      if (data.startsWith("/data/upload/")) {
+        // 是文件名，则读取文件
+        fetch(data).then((response) => response.arrayBuffer())
+          .then((arrayBuffer) => {
+            const buffer = Buffer.from(arrayBuffer);
+
+            const viewHexy = hexy(buffer);
+
+            setViewContentState(viewHexy);
+          });
+
+      } else {
+        // 不是文件名，则直接呈现数据
+        const viewHexy = hexy(data);
+
+        setViewContentState(viewHexy);
+      }
+    }, []);
+
+    return (
+      // <Table bordered dataSource={item.dataSource} columns={item.columns} pagination={{ hideOnSinglePage: true }} />
+      <div>
+        <plaintext>{viewContentState}</plaintext>
+      </div>
+    );
+  }),
+);
+
+const PacketModel = types.compose(
+  "PacketModel",
+  ProcessAttrsMixin,
+  ObjectBase,
+  RegionsMixin,
+  AnnotationMixin,
+  IsReadyMixin,
+  TagAttrs,
+  Model,
+);
+
+Registry.addTag("packet", PacketModel, HtxPacket);
+Registry.addObjectType(PacketModel);
+
+export { PacketModel, HtxPacket };
