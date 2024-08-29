@@ -2,8 +2,7 @@
 
 import Registry from "../../core/Registry";
 import {inject, observer} from "mobx-react";
-import {useEffect, useState} from "react";
-import {hexy} from "hexy";
+import ObjectTag from "../../components/Tags/Object";
 import {Buffer} from "buffer";
 import {types} from "mobx-state-tree";
 import {RichTextModel} from "./RichText";
@@ -11,8 +10,13 @@ import ProcessAttrsMixin from "../../mixins/ProcessAttrs";
 import ObjectBase from "./Base";
 import IsReadyMixin from "../../mixins/IsReadyMixin";
 import RegionsMixin from "../../mixins/Regions";
-import { AnnotationMixin } from "../../mixins/AnnotationMixin";
+import {AnnotationMixin} from "../../mixins/AnnotationMixin";
 import {customTypes} from "../../core/CustomTypes";
+import {Block, Elem} from "../../utils/bem";
+import {Component, createRef} from "react";
+import HexEditor from "react-hex-editor";
+
+import "./Packet/Packet.less";
 
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
@@ -81,40 +85,95 @@ Model.views = RichTextModel.views;
 Model.volatile = RichTextModel.volatile;
 Model.actions = RichTextModel.actions;
 
-const HtxPacket = inject("store")(
-  observer(({ item }) => {
-    const [viewContentState, setViewContentState] = useState("");
+const hexEditorTheme = {
+  bytePaddingX: '0.2em',
+};
 
-    useEffect(() => {
-      const data = item._value;
+class PacketPieceView extends Component {
+  ref = {
+    hexEditor: createRef(),
+  };
 
-      if (data.startsWith("/data/upload/")) {
-        // 是文件名，则读取文件
-        fetch(data).then((response) => response.arrayBuffer())
-          .then((arrayBuffer) => {
-            const buffer = Buffer.from(arrayBuffer);
+  state = {
+    isHooked: false,
+  };
 
-            const viewHexy = hexy(buffer);
+  _onBlur = (event) => {
+    const hexEditorRef = this.ref.hexEditor.current;
 
-            setViewContentState(viewHexy);
-          });
+    if (!hexEditorRef) return;
 
-      } else {
-        // 不是文件名，则直接呈现数据
-        const viewHexy = hexy(data);
+    console.log("PacketPieceView -> onBlur", event, hexEditorRef.state);
+  };
 
-        setViewContentState(viewHexy);
-      }
-    }, []);
+  _onFocus = (event) => {
+    const hexEditorRef = this.ref.hexEditor.current;
+
+    if (!hexEditorRef) return;
+
+    if (!this.isHooked) {
+      console.log("setSelectionRange Replace");
+
+      hexEditorRef._setSelectionRange = hexEditorRef.setSelectionRange;
+
+      hexEditorRef.setSelectionRange = (start, end, direction, takeFocus) => {
+        console.log("setSelectionRange", start, end, direction, takeFocus);
+
+        hexEditorRef._setSelectionRange(start, end, direction, takeFocus);
+      };
+
+      this.isHooked = true;
+    }
+
+    console.log("PacketPieceView -> onFocus", event, hexEditorRef.state);
+  };
+
+  _onItemsRendered = (event) => {
+    console.log("PacketPieceView -> onItemsRendered", event, this.ref.hexEditor);
+  };
+
+  _onSetValue = (event) => {
+    console.log("PacketPieceView -> onSetValue", event, this.ref.hexEditor);
+  };
+
+  render() {
+    const { item } = this.props;
+
+    if (!item._value) return null;
+
+    const columns = 0x10;
+    const rawContent = Buffer.from(item._value, "base64");
+
+    const rows = Math.ceil(rawContent.length / columns);
+
+    const eventHandlers = {
+      onBlur: this._onBlur,
+      onFocus: this._onFocus,
+      onItemsRendered: this._onItemsRendered,
+      onSetValue: this._onSetValue,
+    };
 
     return (
-      // <Table bordered dataSource={item.dataSource} columns={item.columns} pagination={{ hideOnSinglePage: true }} />
-      <div>
-        <plaintext>{viewContentState}</plaintext>
-      </div>
+      <Block name="packet" tag={ObjectTag} item={item}>
+        <Elem
+          ref={this.ref.hexEditor}
+          tag={HexEditor}
+          columns={columns}
+          rows={rows}
+          showAscii={true}
+          showRowLabels={true}
+          showColumnLabels={true}
+          data={rawContent}
+          readOnly={true}
+          theme={{hexEditor: hexEditorTheme}}
+          {...eventHandlers}
+        />
+      </Block>
     );
-  }),
-);
+  }
+}
+
+const HtxPacket = inject("store")(observer(PacketPieceView));
 
 const PacketModel = types.compose(
   "PacketModel",

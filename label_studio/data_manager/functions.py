@@ -43,7 +43,7 @@ def get_all_columns(project, *_):
 
     # all data types from import data
     all_data_columns = project.summary.all_data_columns
-    if all_data_columns:
+    if not data_types and all_data_columns:
         data_types.update({key: 'Unknown' for key in all_data_columns if key not in data_types})
 
     # remove $undefined$ if there is one type at least in labeling config, because it will be resolved automatically

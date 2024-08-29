@@ -4,8 +4,10 @@ import logging
 import os
 import uuid
 from collections import Counter
+import base64
 
 import pandas as pd
+from scapy.all import rdpcap
 
 try:
     import ujson as json
@@ -110,6 +112,12 @@ class FileUpload(models.Model):
             tasks_formatted.append(task)
         return tasks_formatted
 
+    def read_tasks_list_from_packet(self):
+        logger.debug('Read tasks list from packet file {}'.format(self.file.name))
+        packets = list(rdpcap(self.file.open()))
+        tasks = [{'data': {settings.DATA_UNDEFINED_NAME: base64.b64encode(bytes(packet)).decode()}} for packet in packets]
+        return tasks
+
     def read_task_from_hypertext_body(self):
         logger.debug('Read 1 task from hypertext file {}'.format(self.file.name))
         body = self.content
@@ -126,7 +134,7 @@ class FileUpload(models.Model):
 
     @property
     def format_could_be_tasks_list(self):
-        return self.format in ('.csv', '.tsv', '.txt')
+        return self.format in ('.csv', '.tsv', '.txt', '.pcap', '.pcapng')
 
     def read_tasks(self, file_as_tasks_list=True):
         file_format = self.format
@@ -138,6 +146,8 @@ class FileUpload(models.Model):
                 tasks = self.read_tasks_list_from_tsv()
             elif file_format == '.txt' and file_as_tasks_list:
                 tasks = self.read_tasks_list_from_txt()
+            elif file_format in ('.pcap', '.pcapng') and file_as_tasks_list:
+                tasks = self.read_tasks_list_from_packet()
             elif file_format == '.json':
                 tasks = self.read_tasks_list_from_json()
 

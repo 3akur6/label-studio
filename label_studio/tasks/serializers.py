@@ -191,10 +191,11 @@ class BaseTaskSerializer(FlexFieldsModelSerializer):
 
             # replace data type with project data type
             data_key = list(data.keys())[0]
-            project_key = list(project.data_types.keys())[0]
-            if data_key != project_key:
-                data[project_key] = data[data_key]
-                del data[data_key]
+            if project.data_types:
+                project_key = list(project.data_types.keys())[0]
+                if data_key != project_key:
+                    data[project_key] = data[data_key]
+                    del data[data_key]
 
         return super().to_representation(instance)
 

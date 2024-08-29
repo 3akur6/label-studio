@@ -36,6 +36,7 @@ _DATA_TYPES = {
     'TimeSeriesLabels': [str, list],
     'Taxonomy': [str, list, type(None)],
     'Ranker': [list, str],
+    'Packet': [str],
 }
 logger = logging.getLogger(__name__)
 
