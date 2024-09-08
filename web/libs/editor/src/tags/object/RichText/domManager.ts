@@ -864,6 +864,8 @@ export default class DomManager {
         this.doc.head.appendChild(styleTag);
       }
       styleTag.textContent = styleText;
+
+      console.log("setStyles", styleTag);
     }
   }
 

@@ -15,6 +15,8 @@ import {StepsForm} from "@ant-design/pro-components";
 import {Alert, Button} from "antd";
 import {btoa} from "js-base64";
 
+import "./Packet/Packet.scss";
+
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
  * You can use `<Style>.htx-text{ white-space: pre-wrap; }</Style>` to preserve all spaces in the text, otherwise spaces are trimmed when displayed and saved in the results.
@@ -64,11 +66,6 @@ const Model = types
       return states ? states.filter((s) => s.isLabeling && s.isSelected) : null;
     },
   })).actions((self) => ({
-    applyHighlight(area) {
-      console.log("annotation", self.annotation);
-      console.log("area", area);
-    },
-
     addRegion(range) {
       const states = self.getAvailableStates();
 
@@ -80,7 +77,7 @@ const Model = types
       const resultValue = {[control.valueType]: control.selectedValues()};
       const area = self.annotation.createResult(areaValue, resultValue, control, self);
 
-      self.applyHighlight(range);
+      area.setHighlight(true);
 
       return area;
     },
@@ -238,9 +235,14 @@ class PacketPieceView extends Component {
       if (states.length === 0) return;
 
       const region = {
-        start: selectionStart,
-        end: selectionEnd,
+        start: selectionStart + this.state.selectionStart,
+        end: selectionEnd + this.state.selectionStart,
         content,
+
+        globalOffset: {
+          start: this.state.selectionStart,
+          end: this.state.selectionEnd,
+        },
       };
 
       item.addRegion(region);
@@ -253,8 +255,6 @@ class PacketPieceView extends Component {
 
   render() {
     const { item } = this.props;
-
-    console.log("render", item);
 
     if (!item._value) return null;
 

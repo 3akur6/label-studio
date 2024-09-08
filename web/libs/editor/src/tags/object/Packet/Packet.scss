@@ -22,3 +22,27 @@
     margin-bottom: 0;
   }
 }
+
+:global {
+  .ant-form {
+    line-height: initial!important;
+  }
+
+  .hexEditorHeader {
+    height: initial;
+
+    ::selection {
+      color: unset;
+    }
+  }
+
+  .byteHeader span {
+    ::selection {
+      color: unset;
+    }
+  }
+
+  .offsetLabel::selection {
+    color: unset;
+  }
+}
