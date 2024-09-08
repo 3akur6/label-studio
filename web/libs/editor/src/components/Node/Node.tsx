@@ -55,6 +55,12 @@ const NodeViews = {
     icon: LineChartOutlined,
   }),
 
+  PacketRegionModel: NodeView({
+    name: "Packet",
+    icon: MessageOutlined,
+    getContent: (node) => <span style={{ color: "#5a5a5a" }}>{node._value}</span>
+  }),
+
   TextAreaRegionModel: NodeView({
     name: "Input",
     icon: MessageOutlined,

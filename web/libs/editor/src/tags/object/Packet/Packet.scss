@@ -1,0 +1,24 @@
+.ant-pro-steps-form-step {
+  margin-top: 0;
+}
+
+.ant-space {
+  margin-top: 6px;
+  float: right;
+  width: 100%;
+  gap: 0;
+  justify-content: flex-end;
+  align-items: center;
+
+  .ant-space-item {
+    align-content: center;
+
+    &:nth-child(2) {
+      margin-top: -4px;
+    }
+  }
+
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+}

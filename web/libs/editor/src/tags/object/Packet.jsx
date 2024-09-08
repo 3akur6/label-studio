@@ -2,21 +2,18 @@
 
 import Registry from "../../core/Registry";
 import {inject, observer} from "mobx-react";
-import ObjectTag from "../../components/Tags/Object";
 import {Buffer} from "buffer";
 import {types} from "mobx-state-tree";
-import {RichTextModel} from "./RichText";
 import ProcessAttrsMixin from "../../mixins/ProcessAttrs";
 import ObjectBase from "./Base";
 import IsReadyMixin from "../../mixins/IsReadyMixin";
 import RegionsMixin from "../../mixins/Regions";
 import {AnnotationMixin} from "../../mixins/AnnotationMixin";
-import {customTypes} from "../../core/CustomTypes";
-import {Block, Elem} from "../../utils/bem";
-import {Component, createRef} from "react";
-import HexEditor from "react-hex-editor";
-
-import "./Packet/Packet.less";
+import {Component} from "react";
+import {BaseHexEditor} from "react-hex-editor";
+import {StepsForm} from "@ant-design/pro-components";
+import {Alert, Button} from "antd";
+import {btoa} from "js-base64";
 
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
@@ -36,7 +33,7 @@ import "./Packet/Packet.less";
  * @example
  * <Packet name="p1">Some simple text with explanations</Packet>
  * @name Packet
- * @regions TextRegion
+ * @regions PacketRegion
  * @meta_title Text Tags for Text Objects
  * @meta_description Customize Label Studio with the Text tag to annotate text for NLP and NER machine learning and data science projects.
  * @param {string} name                                   Name of the element
@@ -49,126 +46,262 @@ import "./Packet/Packet.less";
  * @param {boolean} [showLabels]                          Whether or not to show labels next to the region; unset (by default) — use editor settings; true/false — override settings
  * @param {symbol|word|sentence|paragraph} [granularity]  Control region selection granularity
  */
-const TagAttrs = types.model("PacketModel", {
+const TagAttrs = types.model({
   value: types.maybeNull(types.string),
-
-  /** Defines the type of data to be shown */
-  valuetype: types.optional(types.enumeration(["text", "url"]), () => (window.LS_SECURE_MODE ? "url" : "text")),
-
-  inline: false,
-
-  /** Whether or not to save selected text to the serialized data */
-  savetextresult: types.optional(types.enumeration(["none", "no", "yes"]), () =>
-    window.LS_SECURE_MODE ? "no" : "none",
-  ),
-
-  selectionenabled: types.optional(types.boolean, true),
-
-  clickablelinks: false,
-
-  highlightcolor: types.maybeNull(customTypes.color),
-
-  showlabels: types.maybeNull(types.boolean),
-
-  encoding: types.optional(types.enumeration(["none", "base64", "base64unicode"]), "none"),
-
-  granularity: types.optional(types.enumeration(["symbol", "word", "sentence", "paragraph"]), "symbol"),
 });
 
 const Model = types
   .model("PacketModel", {
     type: "packet",
-    _value: types.optional(types.string, ""),
-  });
+  }).views((self) => ({
+    states() {
+      return self.annotation.toNames.get(self.name);
+    },
 
-Model.views = RichTextModel.views;
-Model.volatile = RichTextModel.volatile;
-Model.actions = RichTextModel.actions;
+    activeStates() {
+      const states = self.states();
+
+      return states ? states.filter((s) => s.isLabeling && s.isSelected) : null;
+    },
+  })).actions((self) => ({
+    applyHighlight(area) {
+      console.log("annotation", self.annotation);
+      console.log("area", area);
+    },
+
+    addRegion(range) {
+      const states = self.getAvailableStates();
+
+      if (states.length === 0) return;
+
+      const control = states[0];
+
+      const areaValue = range;
+      const resultValue = {[control.valueType]: control.selectedValues()};
+      const area = self.annotation.createResult(areaValue, resultValue, control, self);
+
+      self.applyHighlight(range);
+
+      return area;
+    },
+  }));
+
+const HEX_EDITOR_COLUMNS = 0x10;
+const ROW_HEIGHT = 22;
+const HEX_EDITOR_WIDTH = 780;
 
 const hexEditorTheme = {
-  bytePaddingX: '0.2em',
+  asciiPaddingX: 0,
+  bytePaddingX: '0.4em',
+  rowPaddingY: 0,
+  colorBackground: '#fff',
+  colorBackgroundColumnEven: '#fff',
+  colorBackgroundColumnOdd: '#f6f8fa',
+  colorBackgroundCursor: '#f1f8ff',
+  colorBackgroundCursorHighlight: '#c8e1ff',
+  colorBackgroundEven: '#fff',
+  colorBackgroundInactiveCursor: '#fffbdd',
+  colorBackgroundInactiveCursorHighlight: '#fffbdd',
+  colorBackgroundInactiveSelection: '#e6ebf1',
+  colorBackgroundInactiveSelectionCursor: '#e6ebf1',
+  colorBackgroundLabel: '#fff',
+  colorBackgroundLabelCurrent: '#fff',
+  colorBackgroundOdd: '#f6f8fa',
+  colorBackgroundRowEven: '#fff',
+  colorBackgroundRowOdd: '#f6f8fa',
+  colorBackgroundSelection: '#0366d6',
+  colorBackgroundSelectionCursor: '#005cc5',
+  colorScrollbackTrack: '#f6f8fa',
+  colorScrollbackThumb: '#c6cbd1',
+  colorScrollbackThumbHover: '#959da5',
+  colorText: '#24292e',
+  colorTextColumnEven: '#24292e',
+  colorTextColumnOdd: '#24292e',
+  colorTextCursor: '#1074e7',
+  colorTextCursorHighlight: '#0366d6',
+  colorTextEven: '#24292e',
+  colorTextInactiveCursor: '#735c0f',
+  colorTextInactiveCursorHighlight: '#735c0f',
+  colorTextInactiveSelection: '#586069',
+  colorTextInactiveSelectionCursor: '#586069',
+  colorTextLabel: '#c6cbd1',
+  colorTextLabelCurrent: '#676a6c',
+  colorTextOdd: '#24292e',
+  colorTextRowEven: '#24292e',
+  colorTextRowOdd: '#24292e',
+  colorTextSelection: '#fff',
+  colorTextSelectionCursor: '#fff',
+  fontFamily: 'monospace',
+  fontSize: '16px',
+  gutterWidth: '0.5em',
+  cursorBlinkSpeed: '0.5s',
+  labelPaddingX: '0.5em',
+  scrollWidth: 'auto',
+  textTransform: 'uppercase',
 };
 
 class PacketPieceView extends Component {
-  ref = {
-    hexEditor: createRef(),
-  };
-
   state = {
-    isHooked: false,
+    selectAreaAlertVisible: false,
+    selectionStart: 0,
+    selectionEnd: 0,
   };
 
-  _onBlur = (event) => {
-    const hexEditorRef = this.ref.hexEditor.current;
+  buildHexEditor = (content) => {
+    if (!content) return;
 
-    if (!hexEditorRef) return;
+    const rows = Math.ceil(content.length / HEX_EDITOR_COLUMNS);
 
-    console.log("PacketPieceView -> onBlur", event, hexEditorRef.state);
+    return <BaseHexEditor
+      rows={rows}
+      columns={HEX_EDITOR_COLUMNS}
+      showAscii={true}
+      showRowLabels={true}
+      showColumnLabels={true}
+      data={content}
+      readOnly={true}
+      theme={{hexEditor: hexEditorTheme}}
+      rowHeight={ROW_HEIGHT}
+      width={HEX_EDITOR_WIDTH}
+      height={28 + rows * ROW_HEIGHT}
+    />;
   };
 
-  _onFocus = (event) => {
-    const hexEditorRef = this.ref.hexEditor.current;
+  handleSelectAreaAlertClose = () => {
+    this.setState({selectAreaAlertVisible: false});
+  };
 
-    if (!hexEditorRef) return;
-
-    if (!this.isHooked) {
-      console.log("setSelectionRange Replace");
-
-      hexEditorRef._setSelectionRange = hexEditorRef.setSelectionRange;
-
-      hexEditorRef.setSelectionRange = (start, end, direction, takeFocus) => {
-        console.log("setSelectionRange", start, end, direction, takeFocus);
-
-        hexEditorRef._setSelectionRange(start, end, direction, takeFocus);
+  _getByteValueSelection = (startElem, endElem) => {
+    if (!startElem || !endElem) {
+      return {
+        selectionStart: null,
+        selectionEnd: null,
       };
-
-      this.isHooked = true;
     }
 
-    console.log("PacketPieceView -> onFocus", event, hexEditorRef.state);
+    const selectionStart = parseInt(startElem.getAttribute("data-offset"));
+    const selectionEnd = parseInt(endElem.getAttribute("data-offset")) + 1;
+
+    const contentArray = this.rawContent.subarray(selectionStart, selectionEnd);
+    const content = btoa(String.fromCharCode(contentArray));
+
+    return {
+      selectionStart,
+      selectionEnd,
+      content,
+    }
   };
 
-  _onItemsRendered = (event) => {
-    console.log("PacketPieceView -> onItemsRendered", event, this.ref.hexEditor);
-  };
-
-  _onSetValue = (event) => {
-    console.log("PacketPieceView -> onSetValue", event, this.ref.hexEditor);
-  };
-
-  render() {
+  handleSelectAreaFinish = () => {
     const { item } = this.props;
 
     if (!item._value) return null;
 
-    const columns = 0x10;
-    const rawContent = Buffer.from(item._value, "base64");
+    const pageID = "#select-area";
+    const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
+    const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
 
-    const rows = Math.ceil(rawContent.length / columns);
+    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
 
-    const eventHandlers = {
-      onBlur: this._onBlur,
-      onFocus: this._onFocus,
-      onItemsRendered: this._onItemsRendered,
-      onSetValue: this._onSetValue,
-    };
+    if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
+      this.setState({selectAreaAlertVisible: true});
+      return false;
+    }
+
+    // 选择成功
+    this.setState({selectAreaAlertVisible: false, selectionStart, selectionEnd});
+
+    return true;
+  };
+
+  registerSelectAreaLabelHandler = () => {
+    const pageID = "#start-label";
+    const hexEditorBodyElem = document.querySelector(`${pageID} .hexEditorBody`);
+
+    if (!hexEditorBodyElem) return;
+
+    hexEditorBodyElem.addEventListener("mouseup", (event) => {
+      const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
+      const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
+
+      const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
+
+      if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
+        // 无有效选择
+        return;
+      }
+
+      const {item} = this.props;
+      if (!item) return;
+
+      const states = item.activeStates();
+      if (states.length === 0) return;
+
+      const region = {
+        start: selectionStart,
+        end: selectionEnd,
+        content,
+      };
+
+      item.addRegion(region);
+    });
+  };
+
+  componentDidMount() {
+    this.registerSelectAreaLabelHandler();
+  }
+
+  render() {
+    const { item } = this.props;
+
+    console.log("render", item);
+
+    if (!item._value) return null;
+
+    this.rawContent = Buffer.from(item._value, "base64");
 
     return (
-      <Block name="packet" tag={ObjectTag} item={item}>
-        <Elem
-          ref={this.ref.hexEditor}
-          tag={HexEditor}
-          columns={columns}
-          rows={rows}
-          showAscii={true}
-          showRowLabels={true}
-          showColumnLabels={true}
-          data={rawContent}
-          readOnly={true}
-          theme={{hexEditor: hexEditorTheme}}
-          {...eventHandlers}
-        />
-      </Block>
+      <StepsForm
+        stepsProps={{direction: "horizontal"}}
+        submitter={{
+          render: (props) => {
+            switch (props.step) {
+              case 0: {
+                return <Button type="primary" onClick={() => props.onSubmit?.()}>
+                  Next
+                </Button>;
+              }
+              case 1: {
+                return <Button type="primary" onClick={() => props.onPre?.()}>
+                  Back
+                </Button>;
+              }
+            }
+          }
+        }}
+      >
+        <StepsForm.StepForm
+          name="select-area"
+          title="Select area"
+          stepProps={{description: "Select bytes you label then."}}
+          onFinish={this.handleSelectAreaFinish}
+        >
+          {this.buildHexEditor(this.rawContent)}
+          {this.state.selectAreaAlertVisible && <Alert
+            type="error"
+            message="You should check your selection."
+            closable
+            onClose={this.handleSelectAreaAlertClose}
+          />}
+        </StepsForm.StepForm>
+        <StepsForm.StepForm
+          name="start-label"
+          title="Start label"
+          stepProps={{description: "Let's label now!"}}
+        >
+          {this.buildHexEditor(this.rawContent.subarray(this.state.selectionStart, this.state.selectionEnd))}
+        </StepsForm.StepForm>
+      </StepsForm>
     );
   }
 }
@@ -178,10 +311,10 @@ const HtxPacket = inject("store")(observer(PacketPieceView));
 const PacketModel = types.compose(
   "PacketModel",
   ProcessAttrsMixin,
+  IsReadyMixin,
   ObjectBase,
   RegionsMixin,
   AnnotationMixin,
-  IsReadyMixin,
   TagAttrs,
   Model,
 );

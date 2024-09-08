@@ -941,7 +941,7 @@ export const Annotation = types
       Hotkey.setScope(Hotkey.DEFAULT_SCOPE);
     },
 
-    createResult(areaValue, resultValue, control, object, skipAfrerCreate = false) {
+    createResult(areaValue, resultValue, control, object, skipAfterCreate = false) {
       // Without correct validation object may be null, but it it shouldn't be so in results - so we should find any
       if (isFF(FF_DEV_1598) && !object && control.type === "textarea") {
         object = self.objects[0];
@@ -976,7 +976,7 @@ export const Annotation = types
       if (!area) return;
 
       if (!area.classification) getEnv(self).events.invoke("entityCreate", area);
-      if (!skipAfrerCreate) self.afterCreateResult(area, control);
+      if (!skipAfterCreate) self.afterCreateResult(area, control);
 
       return area;
     },
