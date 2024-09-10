@@ -37,6 +37,8 @@ const GlobalOffset = types.model("GlobalOffset", {
  * @property {string} value.labels labels of the fragment
  */
 
+const HEX_EDITOR_BACKGROUND_COLOR = "rgb(255, 255, 255)";
+
 const Model = types.model("PacketRegionModel", {
   type: "packetregion",
   object: types.late(() => types.reference(PacketModel)),
@@ -57,7 +59,7 @@ const Model = types.model("PacketRegionModel", {
     };
   },
 })).actions((self) => ({
-  findSelectItems() {
+  findSpan() {
     const globalOffset = self.globalOffset;
     const localStart = self.start - globalOffset.start;
     const localEnd = self.end - globalOffset.start;
@@ -71,30 +73,45 @@ const Model = types.model("PacketRegionModel", {
     });
   },
 
-  updateSelectItemsColor(bgColor, opacity) {
-    const selectItems = self.findSelectItems();
+  updateItemColor(node, bgColor, opacity) {
+    if (bgColor === HEX_EDITOR_BACKGROUND_COLOR) {
+      // 复原
+      const classNameList = node.className.split(" ");
 
-    selectItems.forEach((node) => {
-      if (bgColor) {
-        node.style.backgroundColor = bgColor;
-
-        if (bgColor === "transparent") {
-          node.style.color = "black";
-        } else {
-          node.style.color = "white";
-        }
+      let rColor = "rgb(36, 41, 46)";
+      let rBgColor = bgColor;
+      if (classNameList.includes("even")) {
+        rBgColor = bgColor;
+      } else if (classNameList.includes("odd")) {
+        rBgColor = "rgb(246, 248, 250)";
+      } else {
+        console.error("updateSpanColor", classNameList);
       }
+
+      node.style.color = rColor;
+      node.style.backgroundColor = rBgColor;
+    } else {
+      node.style.color = "white";
+      node.style.backgroundColor = bgColor;
 
       if (opacity) {
         node.style.backgroundColor = Utils.Colors.rgbaChangeAlpha(node.style.backgroundColor, opacity);
       }
+    }
+  },
+
+  updateSpanColor(bgColor, opacity) {
+    const span = self.findSpan();
+
+    span.forEach((node) => {
+      self.updateItemColor(node, bgColor, opacity);
     });
   },
 
   updateAppearanceFromState() {
     const labelColor = self.style.fillcolor;
 
-    self.updateSelectItemsColor(labelColor, self.selected ? 0.8 : 0.3);
+    self.updateSpanColor(labelColor, self.selected ? 0.8 : 0.3);
   },
 
   setHighlight(value) {
@@ -110,18 +127,49 @@ const Model = types.model("PacketRegionModel", {
     self.setHighlight(self.highlighted);
 
     if (self.hidden) {
-      self.updateSelectItemsColor("transparent", 0);
-
-      const selectItems = self.findSelectItems();
-      selectItems.forEach((node) => {
-        node.style.cursor = Constants.DEFAULT_CURSOR;
-      });
+      self.updateSpanColor(HEX_EDITOR_BACKGROUND_COLOR, null);
     } else {
       self.updateAppearanceFromState();
     }
 
     event?.stopPropagation();
-  }
+  },
+
+  onClickRegion() {
+    console.log("PacketRegion.onClickRegion");
+  },
+
+  destroyRegion() {
+    self.updateSpanColor(HEX_EDITOR_BACKGROUND_COLOR, null);
+
+    const span = self.findSpan();
+
+    span.forEach((item) => {
+      self._currentSpanItem = item;
+
+      item.removeEventListener("click", self.handleSpanClick);
+    });
+  },
+
+  handleSpanClick(event) {
+    if (self.hidden) return;
+
+    event.stopPropagation();
+
+    self._currentSpanItem.style.cursor = Constants.POINTER_CURSOR;
+
+    return self.onClickRegion();
+  },
+
+  registerEvents() {
+    const span = self.findSpan();
+
+    span.forEach((item) => {
+      self._currentSpanItem = item;
+
+      item.addEventListener("click", self.handleSpanClick);
+    });
+  },
 }));
 
 const PacketRegionModel = types.compose(

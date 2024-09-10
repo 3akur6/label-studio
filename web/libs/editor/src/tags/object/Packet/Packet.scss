@@ -45,4 +45,8 @@
   .offsetLabel::selection {
     color: unset;
   }
+
+  .byteValue span {
+    animation: none!important;
+  }
 }

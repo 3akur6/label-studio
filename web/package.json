@@ -41,6 +41,7 @@
   },
   "private": true,
   "dependencies": {
+    "@ant-design/icons": "^5.4.0",
     "@ant-design/pro-components": "^2.7.15",
     "@martel/audio-file-decoder": "^2.3.15",
     "@radix-ui/react-toast": "^1.1.5",

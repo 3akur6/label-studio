@@ -9,13 +9,15 @@ import ObjectBase from "./Base";
 import IsReadyMixin from "../../mixins/IsReadyMixin";
 import RegionsMixin from "../../mixins/Regions";
 import {AnnotationMixin} from "../../mixins/AnnotationMixin";
-import {Component} from "react";
+import {Component, useState} from "react";
 import {BaseHexEditor} from "react-hex-editor";
 import {StepsForm} from "@ant-design/pro-components";
-import {Alert, Button} from "antd";
+import {Alert, Button, Modal} from "antd";
+import {ExclamationCircleOutlined} from "@ant-design/icons";
 import {btoa} from "js-base64";
 
 import "./Packet/Packet.scss";
+import {FunctionComponent} from "react";
 
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
@@ -75,11 +77,15 @@ const Model = types
 
       const areaValue = range;
       const resultValue = {[control.valueType]: control.selectedValues()};
-      const area = self.annotation.createResult(areaValue, resultValue, control, self);
+      const region = self.annotation.createResult(areaValue, resultValue, control, self);
 
-      area.setHighlight(true);
+      // 高亮标记
+      region.setHighlight(true);
 
-      return area;
+      // 添加事件处理
+      region.registerEvents();
+
+      return region;
     },
   }));
 
@@ -135,6 +141,42 @@ const hexEditorTheme = {
   labelPaddingX: '0.5em',
   scrollWidth: 'auto',
   textTransform: 'uppercase',
+};
+
+const BackConfirmView = ({onOk}) => {
+  const [modal, contextHolder] = Modal.useModal();
+
+  const handleConfirmOk = (okFn) => {
+    onOk();
+
+    return okFn();
+  };
+
+  const handleConfirmCancel = (cancelFn) => {
+    return cancelFn();
+  };
+
+  const backConfirm = () => {
+    modal.confirm({
+      title: "Confirm",
+      icon: <ExclamationCircleOutlined/>,
+      content: "If back, you will lose all drafts. Will back?",
+      okText: "Yes",
+      cancelText: "No",
+      onOk: handleConfirmOk,
+      onCancel: handleConfirmCancel,
+    });
+  };
+
+  return (<>
+    <Button
+      type="primary"
+      onClick={backConfirm}
+    >
+      Back
+    </Button>
+    {contextHolder}
+  </>);
 };
 
 class PacketPieceView extends Component {
@@ -211,6 +253,13 @@ class PacketPieceView extends Component {
     return true;
   };
 
+  handleStartLabelBack = () => {
+    const {item} = this.props;
+    if (!item) return;
+
+    item.annotation.deleteAllRegions();
+  };
+
   registerSelectAreaLabelHandler = () => {
     const pageID = "#start-label";
     const hexEditorBodyElem = document.querySelector(`${pageID} .hexEditorBody`);
@@ -272,9 +321,13 @@ class PacketPieceView extends Component {
                 </Button>;
               }
               case 1: {
-                return <Button type="primary" onClick={() => props.onPre?.()}>
-                  Back
-                </Button>;
+                return <BackConfirmView
+                  onOk={() => {
+                    this.handleStartLabelBack();
+
+                    return props.onPre();
+                  }}
+                />;
               }
             }
           }
