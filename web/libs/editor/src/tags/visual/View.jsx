@@ -83,11 +83,8 @@ const Model = types.model({
     "textarea",
     "pairwise",
     "style",
-    "label",
     "relations",
     "filter",
-    "timeseries",
-    "timeserieslabels",
     "pagedview",
     "paragraphs",
     "paragraphlabels",
@@ -95,6 +92,7 @@ const Model = types.model({
     "videorectangle",
     "ranker",
     "packet",
+    "timelinelabels",
   ]),
 });
 

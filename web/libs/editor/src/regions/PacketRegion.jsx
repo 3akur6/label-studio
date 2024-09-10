@@ -85,7 +85,7 @@ const Model = types.model("PacketRegionModel", {
       } else if (classNameList.includes("odd")) {
         rBgColor = "rgb(246, 248, 250)";
       } else {
-        console.error("updateSpanColor", classNameList);
+        console.error("updateItemColor", classNameList);
       }
 
       node.style.color = rColor;
@@ -100,37 +100,69 @@ const Model = types.model("PacketRegionModel", {
     }
   },
 
-  updateSpanColor(bgColor, opacity) {
+  updateItemCursor(node, cursor) {
+    node.style.cursor = cursor;
+  },
+
+  applyHighlightStyle() {
+    console.log("applyHighlightStyle");
+
+    const labelColor = self.style.fillcolor;
+
     const span = self.findSpan();
 
     span.forEach((node) => {
-      self.updateItemColor(node, bgColor, opacity);
+      // 更新颜色
+      self.updateItemColor(node, labelColor, self.selected ? 0.8 : 0.3);
+
+      // 更新指针
+      self.updateItemCursor(node, Constants.POINTER_CURSOR);
     });
   },
 
-  updateAppearanceFromState() {
-    const labelColor = self.style.fillcolor;
+  removeHighlightStyle() {
+    console.log("removeHighlightStyle");
 
-    self.updateSpanColor(labelColor, self.selected ? 0.8 : 0.3);
+    const color = HEX_EDITOR_BACKGROUND_COLOR;
+
+    const span = self.findSpan();
+
+    span.forEach((node) => {
+      // 还原颜色
+      self.updateItemColor(node, color, null);
+
+      // 还原指针
+      self.updateItemCursor(node, Constants.DEFAULT_CURSOR);
+    });
   },
 
   setHighlight(value) {
+    console.log("setHighlight", value);
+  },
+
+  applyHighlight(value) {
     self._highlighted = value;
 
     if (self.highlighted && !self.hidden) {
-      self.updateAppearanceFromState();
+      // 切换高亮
+      self.applyHighlightStyle();
+
+      // 注册事件
+      self.registerEvents();
+    } else {
+      // 取消样式
+      self.removeHighlightStyle();
+
+      // 取消事件
+      self.removeEvents();
     }
   },
 
   toggleHidden(event) {
     self.hidden = !self.hidden;
-    self.setHighlight(self.highlighted);
+    self.applyHighlight(self.highlighted);
 
-    if (self.hidden) {
-      self.updateSpanColor(HEX_EDITOR_BACKGROUND_COLOR, null);
-    } else {
-      self.updateAppearanceFromState();
-    }
+    console.log("toggleHidden");
 
     event?.stopPropagation();
   },
@@ -140,15 +172,9 @@ const Model = types.model("PacketRegionModel", {
   },
 
   destroyRegion() {
-    self.updateSpanColor(HEX_EDITOR_BACKGROUND_COLOR, null);
+    self.removeHighlightStyle();
 
-    const span = self.findSpan();
-
-    span.forEach((item) => {
-      self._currentSpanItem = item;
-
-      item.removeEventListener("click", self.handleSpanClick);
-    });
+    self.removeEvents();
   },
 
   handleSpanClick(event) {
@@ -156,7 +182,7 @@ const Model = types.model("PacketRegionModel", {
 
     event.stopPropagation();
 
-    self._currentSpanItem.style.cursor = Constants.POINTER_CURSOR;
+    console.log("handleSpanClick", self.serialize());
 
     return self.onClickRegion();
   },
@@ -165,9 +191,15 @@ const Model = types.model("PacketRegionModel", {
     const span = self.findSpan();
 
     span.forEach((item) => {
-      self._currentSpanItem = item;
-
       item.addEventListener("click", self.handleSpanClick);
+    });
+  },
+
+  removeEvents() {
+    const span = self.findSpan();
+
+    span.forEach((item) => {
+      item.removeEventListener("click", self.handleSpanClick);
     });
   },
 }));

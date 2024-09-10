@@ -80,7 +80,7 @@ const Model = types
       const region = self.annotation.createResult(areaValue, resultValue, control, self);
 
       // 高亮标记
-      region.setHighlight(true);
+      region.applyHighlight(true);
 
       // 添加事件处理
       region.registerEvents();
