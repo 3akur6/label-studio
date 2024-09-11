@@ -73,7 +73,12 @@ const Model = types.model("PacketRegionModel", {
     });
   },
 
-  updateItemColor(node, bgColor, opacity) {
+  updateSpans() {
+    // 点击标记区域的标签，会调用该方法，更新样式
+    self.applyHighlightStyle({bold: true});
+  },
+
+  updateItemColor(node, bgColor) {
     if (bgColor === HEX_EDITOR_BACKGROUND_COLOR) {
       // 复原
       const classNameList = node.className.split(" ");
@@ -93,10 +98,6 @@ const Model = types.model("PacketRegionModel", {
     } else {
       node.style.color = "white";
       node.style.backgroundColor = bgColor;
-
-      if (opacity) {
-        node.style.backgroundColor = Utils.Colors.rgbaChangeAlpha(node.style.backgroundColor, opacity);
-      }
     }
   },
 
@@ -104,25 +105,24 @@ const Model = types.model("PacketRegionModel", {
     node.style.cursor = cursor;
   },
 
-  applyHighlightStyle() {
-    console.log("applyHighlightStyle");
-
+  applyHighlightStyle({ bold = false } = {}) {
     const labelColor = self.style.fillcolor;
 
     const span = self.findSpan();
 
     span.forEach((node) => {
       // 更新颜色
-      self.updateItemColor(node, labelColor, self.selected ? 0.8 : 0.3);
+      self.updateItemColor(node, labelColor);
 
       // 更新指针
       self.updateItemCursor(node, Constants.POINTER_CURSOR);
+
+      // 更新bold
+      node.style.fontWeight = bold ? "bold" : "";
     });
   },
 
   removeHighlightStyle() {
-    console.log("removeHighlightStyle");
-
     const color = HEX_EDITOR_BACKGROUND_COLOR;
 
     const span = self.findSpan();
@@ -137,7 +137,12 @@ const Model = types.model("PacketRegionModel", {
   },
 
   setHighlight(value) {
-    console.log("setHighlight", value);
+    // 当右侧Regions中被选中会调用该方法
+    if (self.selected || value) {
+      self.applyHighlightStyle({bold: true});
+    } else {
+      self.applyHighlightStyle({bold: false});
+    }
   },
 
   applyHighlight(value) {
@@ -162,8 +167,6 @@ const Model = types.model("PacketRegionModel", {
     self.hidden = !self.hidden;
     self.applyHighlight(self.highlighted);
 
-    console.log("toggleHidden");
-
     event?.stopPropagation();
   },
 
@@ -181,8 +184,6 @@ const Model = types.model("PacketRegionModel", {
     if (self.hidden) return;
 
     event.stopPropagation();
-
-    console.log("handleSpanClick", self.serialize());
 
     return self.onClickRegion();
   },

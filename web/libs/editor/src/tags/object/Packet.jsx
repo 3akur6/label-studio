@@ -17,7 +17,6 @@ import {ExclamationCircleOutlined} from "@ant-design/icons";
 import {btoa} from "js-base64";
 
 import "./Packet/Packet.scss";
-import {FunctionComponent} from "react";
 
 /**
  * The `Packet` tag shows text that can be labeled. Use to display any type of text on the labeling interface.
@@ -260,46 +259,63 @@ class PacketPieceView extends Component {
     item.annotation.deleteAllRegions();
   };
 
+  handleStartLabelMouseUp = (event) => {
+    const pageID = "#start-label";
+
+    const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
+    const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
+
+    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
+
+    if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
+      // 无有效选择
+      return;
+    }
+
+    const {item} = this.props;
+    if (!item) return;
+
+    const states = item.activeStates();
+    if (states.length === 0) return;
+
+    const region = {
+      start: selectionStart + this.state.selectionStart,
+      end: selectionEnd + this.state.selectionStart,
+      content,
+
+      globalOffset: {
+        start: this.state.selectionStart,
+        end: this.state.selectionEnd,
+      },
+    };
+
+    item.addRegion(region);
+  };
+
   registerSelectAreaLabelHandler = () => {
     const pageID = "#start-label";
     const hexEditorBodyElem = document.querySelector(`${pageID} .hexEditorBody`);
 
     if (!hexEditorBodyElem) return;
 
-    hexEditorBodyElem.addEventListener("mouseup", (event) => {
-      const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
-      const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
+    hexEditorBodyElem.addEventListener("mouseup", this.handleStartLabelMouseUp);
+  };
 
-      const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
+  removeSelectAreaLabelHandler = () => {
+    const pageID = "#start-label";
+    const hexEditorBodyElem = document.querySelector(`${pageID} .hexEditorBody`);
 
-      if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
-        // 无有效选择
-        return;
-      }
+    if (!hexEditorBodyElem) return;
 
-      const {item} = this.props;
-      if (!item) return;
-
-      const states = item.activeStates();
-      if (states.length === 0) return;
-
-      const region = {
-        start: selectionStart + this.state.selectionStart,
-        end: selectionEnd + this.state.selectionStart,
-        content,
-
-        globalOffset: {
-          start: this.state.selectionStart,
-          end: this.state.selectionEnd,
-        },
-      };
-
-      item.addRegion(region);
-    });
+    hexEditorBodyElem.removeEventListener("mouseup", this.handleStartLabelMouseUp);
   };
 
   componentDidMount() {
     this.registerSelectAreaLabelHandler();
+  }
+
+  componentWillUnmount() {
+    this.removeSelectAreaLabelHandler();
   }
 
   render() {
