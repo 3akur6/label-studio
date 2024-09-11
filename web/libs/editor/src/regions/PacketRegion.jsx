@@ -4,7 +4,6 @@ import NormalizationMixin from "../mixins/Normalization";
 import {types} from "mobx-state-tree";
 import Registry from "../core/Registry";
 import {PacketModel} from "../tags/object";
-import Utils from "../utils";
 import Constants from "../core/Constants";
 
 const GlobalOffset = types.model("GlobalOffset", {

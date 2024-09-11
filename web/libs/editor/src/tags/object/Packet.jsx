@@ -9,7 +9,7 @@ import ObjectBase from "./Base";
 import IsReadyMixin from "../../mixins/IsReadyMixin";
 import RegionsMixin from "../../mixins/Regions";
 import {AnnotationMixin} from "../../mixins/AnnotationMixin";
-import {Component, useState} from "react";
+import {Component} from "react";
 import {BaseHexEditor} from "react-hex-editor";
 import {StepsForm} from "@ant-design/pro-components";
 import {Alert, Button, Modal} from "antd";
