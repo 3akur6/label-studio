@@ -15,6 +15,7 @@ import {StepsForm} from "@ant-design/pro-components";
 import {Alert, Button, Modal} from "antd";
 import {ExclamationCircleOutlined} from "@ant-design/icons";
 import {btoa} from "js-base64";
+import {v4 as UUIDv4 } from "uuid";
 
 import "./Packet/Packet.scss";
 
@@ -85,6 +86,12 @@ const Model = types
       region.registerEvents();
 
       return region;
+    },
+
+    needsUpdate() {
+      self.regs.forEach((region) => {
+        region.applyHighlight(true);
+      });
     },
   }));
 
@@ -249,6 +256,8 @@ class PacketPieceView extends Component {
     // 选择成功
     this.setState({selectAreaAlertVisible: false, selectionStart, selectionEnd});
 
+    this._areaID = UUIDv4();
+
     return true;
   };
 
@@ -279,11 +288,13 @@ class PacketPieceView extends Component {
     if (states.length === 0) return;
 
     const region = {
+      areaID: this._areaID,
+
       start: selectionStart + this.state.selectionStart,
       end: selectionEnd + this.state.selectionStart,
       content,
 
-      globalOffset: {
+      areaOffset: {
         start: this.state.selectionStart,
         end: this.state.selectionEnd,
       },

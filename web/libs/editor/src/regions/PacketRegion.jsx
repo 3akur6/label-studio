@@ -6,7 +6,7 @@ import Registry from "../core/Registry";
 import {PacketModel} from "../tags/object";
 import Constants from "../core/Constants";
 
-const GlobalOffset = types.model("GlobalOffset", {
+const AreaOffset = types.model("AreaOffset", {
   start: types.number,
   end: types.number,
 }).actions((self) => ({
@@ -42,26 +42,28 @@ const Model = types.model("PacketRegionModel", {
   type: "packetregion",
   object: types.late(() => types.reference(PacketModel)),
 
+  areaID: types.string,
   start: types.number,
   end: types.number,
   content: types.string,
-
-  globalOffset: GlobalOffset,
+  areaOffset: AreaOffset,
 }).views((self) => ({
   serialize() {
     return {
       value: {
+        area_id: self.areaID,
         start: self.start,
         end: self.end,
         content: self.content,
+        area_offset: self.areaOffset,
       },
     };
   },
 })).actions((self) => ({
   findSpan() {
-    const globalOffset = self.globalOffset;
-    const localStart = self.start - globalOffset.start;
-    const localEnd = self.end - globalOffset.start;
+    const areaOffset = self.areaOffset;
+    const localStart = self.start - areaOffset.start;
+    const localEnd = self.end - areaOffset.start;
 
     const items = document.querySelectorAll("#start-label div.byteValue:not(.invalid)");
 
@@ -74,7 +76,11 @@ const Model = types.model("PacketRegionModel", {
 
   updateSpans() {
     // 点击标记区域的标签，会调用该方法，更新样式
-    self.applyHighlightStyle({bold: true});
+    if (self.hidden) {
+      self.applyHighlight(false);
+    } else {
+      self.applyHighlight(true);
+    }
   },
 
   updateItemColor(node, bgColor) {
@@ -132,11 +138,20 @@ const Model = types.model("PacketRegionModel", {
 
       // 还原指针
       self.updateItemCursor(node, Constants.DEFAULT_CURSOR);
+
+      // 更新bold
+      node.style.font = "";
     });
   },
 
   setHighlight(value) {
     // 当右侧Regions中被选中会调用该方法
+    if (self.hidden) {
+      self.applyHighlight(false);
+
+      return;
+    }
+
     if (self.selected || value) {
       self.applyHighlightStyle({bold: true});
     } else {
@@ -164,13 +179,9 @@ const Model = types.model("PacketRegionModel", {
 
   toggleHidden(event) {
     self.hidden = !self.hidden;
-    self.applyHighlight(self.highlighted);
+    self.applyHighlight(!self.hidden);
 
     event?.stopPropagation();
-  },
-
-  onClickRegion() {
-    console.log("PacketRegion.onClickRegion");
   },
 
   destroyRegion() {
@@ -184,7 +195,10 @@ const Model = types.model("PacketRegionModel", {
 
     event.stopPropagation();
 
-    return self.onClickRegion();
+    const packetModel = self.parent;
+    packetModel.annotation.toggleRegionSelection(self, true);
+
+    self.applyHighlightStyle({bold: true});
   },
 
   registerEvents() {
@@ -201,6 +215,10 @@ const Model = types.model("PacketRegionModel", {
     span.forEach((item) => {
       item.removeEventListener("click", self.handleSpanClick);
     });
+  },
+
+  beforeDestroy() {
+    self.applyHighlight(false);
   },
 }));
 
