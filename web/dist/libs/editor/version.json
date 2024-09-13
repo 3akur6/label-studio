@@ -1,0 +1,6 @@
+{
+  "message": "chore: Ensure the one time dev build does not incorrectly default to using the HMR frontend host (#6376)",
+  "commit": "893b683230cd5960a505e12c2d47d67ad54831e8",
+  "date": "2024-09-12T18:42:16.000Z",
+  "branch": "develop"
+}
