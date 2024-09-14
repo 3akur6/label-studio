@@ -14,7 +14,6 @@ import {BaseHexEditor} from "react-hex-editor";
 import {StepsForm} from "@ant-design/pro-components";
 import {Alert, Button, Modal} from "antd";
 import {ExclamationCircleOutlined} from "@ant-design/icons";
-import {btoa} from "js-base64";
 import {v4 as UUIDv4 } from "uuid";
 
 import "./Packet/Packet.scss";
@@ -218,7 +217,7 @@ class PacketPieceView extends Component {
     this.setState({selectAreaAlertVisible: false});
   };
 
-  _getByteValueSelection = (startElem, endElem) => {
+  _getByteValueSelection = (startElem, endElem, byteArray) => {
     if (!startElem || !endElem) {
       return {
         selectionStart: null,
@@ -229,8 +228,8 @@ class PacketPieceView extends Component {
     const selectionStart = parseInt(startElem.getAttribute("data-offset"));
     const selectionEnd = parseInt(endElem.getAttribute("data-offset")) + 1;
 
-    const contentArray = this.rawContent.subarray(selectionStart, selectionEnd);
-    const content = btoa(String.fromCharCode(contentArray));
+    const contentArray = byteArray.subarray(selectionStart, selectionEnd);
+    const content = Buffer.from(contentArray).toString("base64");
 
     return {
       selectionStart,
@@ -248,7 +247,7 @@ class PacketPieceView extends Component {
     const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
     const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
 
-    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
+    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem, this.rawContent);
 
     if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
       this.setState({selectAreaAlertVisible: true});
@@ -276,7 +275,8 @@ class PacketPieceView extends Component {
     const startElem = document.querySelector(`${pageID} div.byteValue.selectionStart`);
     const endElem = document.querySelector(`${pageID} div.byteValue.selectionEnd`);
 
-    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem);
+    const byteArray = this.rawContent.subarray(this.state.selectionStart, this.state.selectionEnd);
+    const {selectionStart, selectionEnd, content} = this._getByteValueSelection(startElem, endElem, byteArray);
 
     if ((selectionStart === null || selectionEnd === null) || (selectionStart >= selectionEnd)) {
       // 无有效选择
