@@ -42,26 +42,26 @@ const Model = types.model("PacketRegionModel", {
   type: "packetregion",
   object: types.late(() => types.reference(PacketModel)),
 
-  areaID: types.string,
+  area_id: types.string,
   start: types.number,
   end: types.number,
   content: types.string,
-  areaOffset: AreaOffset,
+  area_offset: types.maybeNull(AreaOffset),
 }).views((self) => ({
   serialize() {
     return {
       value: {
-        area_id: self.areaID,
+        area_id: self.area_id,
         start: self.start,
         end: self.end,
         content: self.content,
-        area_offset: self.areaOffset,
+        area_offset: self.area_offset,
       },
     };
   },
 })).actions((self) => ({
   findSpan() {
-    const areaOffset = self.areaOffset;
+    const areaOffset = self.area_offset;
     const localStart = self.start - areaOffset.start;
     const localEnd = self.end - areaOffset.start;
 
@@ -193,11 +193,17 @@ const Model = types.model("PacketRegionModel", {
   handleSpanClick(event) {
     if (self.hidden) return;
 
-    event.stopPropagation();
-
     const packetModel = self.parent;
-    packetModel.annotation.toggleRegionSelection(self, true);
 
+    if (packetModel._currentRegion && packetModel._currentRegion !== self) {
+      // 取消当前选择
+      packetModel.annotation.toggleRegionSelection(packetModel._currentRegion, false);
+      packetModel._currentRegion.applyHighlightStyle({bold: false});
+    }
+
+    packetModel._currentRegion = self;
+
+    packetModel.annotation.toggleRegionSelection(self, true);
     self.applyHighlightStyle({bold: true});
   },
 

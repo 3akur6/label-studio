@@ -9,7 +9,7 @@ import ObjectBase from "./Base";
 import IsReadyMixin from "../../mixins/IsReadyMixin";
 import RegionsMixin from "../../mixins/Regions";
 import {AnnotationMixin} from "../../mixins/AnnotationMixin";
-import {Component} from "react";
+import {Component, createRef} from "react";
 import {BaseHexEditor} from "react-hex-editor";
 import {StepsForm} from "@ant-design/pro-components";
 import {Alert, Button, Modal} from "antd";
@@ -192,6 +192,8 @@ class PacketPieceView extends Component {
     selectionEnd: 0,
   };
 
+  selectAreaNextRef = createRef();
+
   buildHexEditor = (content) => {
     if (!content) return;
 
@@ -234,7 +236,7 @@ class PacketPieceView extends Component {
       selectionStart,
       selectionEnd,
       content,
-    }
+    };
   };
 
   handleSelectAreaFinish = () => {
@@ -288,13 +290,13 @@ class PacketPieceView extends Component {
     if (states.length === 0) return;
 
     const region = {
-      areaID: this._areaID,
+      area_id: this._areaID,
 
       start: selectionStart + this.state.selectionStart,
       end: selectionEnd + this.state.selectionStart,
       content,
 
-      areaOffset: {
+      area_offset: {
         start: this.state.selectionStart,
         end: this.state.selectionEnd,
       },
@@ -322,11 +324,67 @@ class PacketPieceView extends Component {
   };
 
   componentDidMount() {
+    const { item } = this.props;
+
+    if (!item._value) return;
+
     this.registerSelectAreaLabelHandler();
+
+    if (item.regs.length > 0) {
+      // 存在标记
+      const regionGroup = {};
+
+      // 根据area_id分组
+      item.regs.forEach((region) => {
+        const area_id = region.area_id;
+
+        if (regionGroup[area_id]) {
+          regionGroup[area_id].push(region);
+        } else {
+          regionGroup[area_id] = [region];
+        }
+      });
+
+      // 检查area_id的数量
+      const keyArray = Object.keys(regionGroup);
+      if (keyArray.length === 1) {
+        const key = keyArray[0];
+        const regions = regionGroup[key];
+
+        // 跳转到start-label页面
+        // 根据area_offset跳转
+        const regionItem = regions[0];
+        const area_start = regionItem.area_offset.start;
+        const area_end = regionItem.area_offset.end;
+
+        this._areaID = regionItem.area_id;
+
+        this.setState({
+          selectAreaAlertVisible: false,
+          selectionStart: area_start,
+          selectionEnd: area_end,
+        });
+
+        this.selectAreaNextRef.current.click();
+      } else {
+        // 其他情况，非预期
+        console.error("Packet.render", regionGroup);
+      }
+    }
   }
 
   componentWillUnmount() {
     this.removeSelectAreaLabelHandler();
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    const { item } = this.props;
+
+    if (!item._value) return;
+
+    item.regs.forEach((region) => {
+      region.applyHighlight(true);
+    });
   }
 
   render() {
@@ -343,7 +401,7 @@ class PacketPieceView extends Component {
           render: (props) => {
             switch (props.step) {
               case 0: {
-                return <Button type="primary" onClick={() => props.onSubmit?.()}>
+                return <Button ref={this.selectAreaNextRef} type="primary" onClick={() => props.onSubmit?.()}>
                   Next
                 </Button>;
               }
@@ -364,7 +422,9 @@ class PacketPieceView extends Component {
           name="select-area"
           title="Select area"
           stepProps={{description: "Select bytes you label then."}}
-          onFinish={this.handleSelectAreaFinish}
+          onFinish={() => {
+            return this.state.selectionEnd !== 0 || this.handleSelectAreaFinish();
+          }}
         >
           {this.buildHexEditor(this.rawContent)}
           {this.state.selectAreaAlertVisible && <Alert
