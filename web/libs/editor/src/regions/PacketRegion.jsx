@@ -152,6 +152,16 @@ const Model = types.model("PacketRegionModel", {
       return;
     }
 
+    const packetModel = self.parent;
+
+    if (packetModel._currentRegion && packetModel._currentRegion !== self) {
+      // 取消当前选择
+      packetModel.annotation.toggleRegionSelection(packetModel._currentRegion, false);
+      packetModel._currentRegion.applyHighlightStyle({bold: false});
+    }
+
+    packetModel._currentRegion = self;
+
     if (self.selected || value) {
       self.applyHighlightStyle({bold: true});
     } else {
