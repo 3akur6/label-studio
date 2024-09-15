@@ -1,7 +1,7 @@
 import RegionsMixin from "../mixins/Regions";
 import {AreaMixin} from "../mixins/AreaMixin";
 import NormalizationMixin from "../mixins/Normalization";
-import {types} from "mobx-state-tree";
+import {isAlive, types} from "mobx-state-tree";
 import Registry from "../core/Registry";
 import {PacketModel} from "../tags/object";
 import Constants from "../core/Constants";
@@ -154,7 +154,7 @@ const Model = types.model("PacketRegionModel", {
 
     const packetModel = self.parent;
 
-    if (packetModel._currentRegion && packetModel._currentRegion !== self) {
+    if (packetModel._currentRegion && isAlive(packetModel._currentRegion) && packetModel._currentRegion !== self) {
       // 取消当前选择
       packetModel.annotation.toggleRegionSelection(packetModel._currentRegion, false);
       packetModel._currentRegion.applyHighlightStyle({bold: false});
@@ -205,7 +205,7 @@ const Model = types.model("PacketRegionModel", {
 
     const packetModel = self.parent;
 
-    if (packetModel._currentRegion && packetModel._currentRegion !== self) {
+    if (packetModel._currentRegion && isAlive(packetModel._currentRegion) && packetModel._currentRegion !== self) {
       // 取消当前选择
       packetModel.annotation.toggleRegionSelection(packetModel._currentRegion, false);
       packetModel._currentRegion.applyHighlightStyle({bold: false});
