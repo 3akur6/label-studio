@@ -235,6 +235,14 @@ const Model = types.model("PacketRegionModel", {
 
   beforeDestroy() {
     self.applyHighlight(false);
+
+    // 为防止重叠部分被去色，重新渲染全部的region
+    const parentModel = self.parent;
+    const otherRegions = parentModel.regs.filter((region) => region !== self);
+
+    otherRegions.forEach((region) => {
+      region.applyHighlight(true);
+    });
   },
 }));
 

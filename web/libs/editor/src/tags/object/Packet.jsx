@@ -266,7 +266,14 @@ class PacketPieceView extends Component {
     const {item} = this.props;
     if (!item) return;
 
-    item.annotation.deleteAllRegions();
+    item.annotation.deleteAllRegions({deleteReadOnly: true});
+    item.annotation.dropDraft();
+
+    this.setState({
+      selectAreaAlertVisible: false,
+      selectionStart: 0,
+      selectionEnd: 0,
+    });
   };
 
   handleStartLabelMouseUp = (event) => {
