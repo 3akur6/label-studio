@@ -1,6 +1,6 @@
 {
-  "message": "chore(deps): bump express from 4.19.2 to 4.21.0 in /web (#6383)",
-  "commit": "b74c69f4680b0e2bb7d61b900eb12b9bcc71843a",
-  "date": "2024-09-13T22:19:04.000Z",
+  "message": "chore: TRIAG-851: Resolve a development dependency to satisfy dependabot issue (#6393)",
+  "commit": "fb75c7a7b4c820411ba6c05cc48bb746759fe3e7",
+  "date": "2024-09-16T22:41:05.000Z",
   "branch": "develop"
 }
