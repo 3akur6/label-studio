@@ -4,7 +4,7 @@ import NormalizationMixin from "../mixins/Normalization";
 import {isAlive, types} from "mobx-state-tree";
 import Registry from "../core/Registry";
 import {PacketModel} from "../tags/object";
-import Constants from "../core/Constants";
+import Constants, {defaultStyle} from "../core/Constants";
 
 const AreaOffset = types.model("AreaOffset", {
   start: types.number,
@@ -74,6 +74,10 @@ const Model = types.model("PacketRegionModel", {
     });
   },
 
+  getLabelColor() {
+    return self.parent.highlightcolor || (self.style || self.tag || defaultStyle).fillcolor;
+  },
+
   updateSpans() {
     // 点击标记区域的标签，会调用该方法，更新样式
     if (self.hidden) {
@@ -111,7 +115,7 @@ const Model = types.model("PacketRegionModel", {
   },
 
   applyHighlightStyle({ bold = false } = {}) {
-    const labelColor = self.style.fillcolor;
+    const labelColor = self.getLabelColor();
 
     const span = self.findSpan();
 
@@ -190,6 +194,10 @@ const Model = types.model("PacketRegionModel", {
   toggleHidden(event) {
     self.hidden = !self.hidden;
     self.applyHighlight(!self.hidden);
+
+    self.parent.regs.forEach((region) => {
+      region.applyHighlight(true);
+    });
 
     event?.stopPropagation();
   },
