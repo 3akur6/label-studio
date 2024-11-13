@@ -239,6 +239,36 @@ class Task(TaskMixin, models.Model):
         else:
             return []
 
+    def get_lock_exclude_query(self, user):
+        """
+        Get query for excluding annotations from the lock check
+        """
+        SkipQueue = self.project.SkipQueue
+
+        if self.project.skip_queue == SkipQueue.IGNORE_SKIPPED:
+            # IGNORE_SKIPPED: my skipped tasks don't go anywhere
+            # alien's and my skipped annotations are counted as regular annotations
+            q = Q()
+        else:
+            if self.project.skip_queue == SkipQueue.REQUEUE_FOR_ME:
+                # REQUEUE_FOR_ME means: only my skipped tasks go back to me,
+                # alien's skipped annotations are counted as regular annotations
+                q = Q(was_cancelled=True) & Q(completed_by=user)
+            elif self.project.skip_queue == SkipQueue.REQUEUE_FOR_OTHERS:
+                # REQUEUE_FOR_OTHERS: my skipped tasks go to others
+                # alien's skipped annotations are not counted at all
+                q = Q(was_cancelled=True) & ~Q(completed_by=user)
+            else:
+                raise Exception(f'Invalid SkipQueue value: {self.project.skip_queue}')
+
+            # for LSE we also need to exclude rejected queue
+            rejected_q = self.get_rejected_query()
+
+            if rejected_q:
+                q &= rejected_q
+
+        return q | Q(ground_truth=True)
+
     def has_lock(self, user=None):
         """
         Check whether current task has been locked by some user
@@ -247,23 +277,10 @@ class Task(TaskMixin, models.Model):
         """
         from projects.functions.next_task import get_next_task_logging_level
 
-        SkipQueue = self.project.SkipQueue
-
-        if self.project.skip_queue == SkipQueue.REQUEUE_FOR_ME:
-            # REQUEUE_FOR_ME means: only my skipped tasks go back to me,
-            # alien's skipped annotations are counted as regular annotations
-            q = Q(was_cancelled=True) & Q(completed_by=user)
-        elif self.project.skip_queue == SkipQueue.REQUEUE_FOR_OTHERS:
-            # REQUEUE_FOR_OTHERS: my skipped tasks go to others
-            # alien's skipped annotations are not counted at all
-            q = Q(was_cancelled=True) & ~Q(completed_by=user)
-        else:  # SkipQueue.IGNORE_SKIPPED
-            # IGNORE_SKIPPED: my skipped tasks don't go anywhere
-            # alien's and my skipped annotations are counted as regular annotations
-            q = Q()
+        q = self.get_lock_exclude_query(user)
 
         num_locks = self.num_locks_user(user=user)
-        num_annotations = self.annotations.exclude(q | Q(ground_truth=True)).count()
+        num_annotations = self.annotations.exclude(q).count()
         num = num_locks + num_annotations
 
         if num > self.overlap_with_agreement_threshold(num, num_locks):
@@ -341,6 +358,11 @@ class Task(TaskMixin, models.Model):
         num_locks = self.num_locks
         if num_locks < self.overlap:
             lock_ttl = settings.TASK_LOCK_TTL
+            if (
+                flag_set('fflag_feat_all_leap_1534_custom_task_lock_timeout_short', user=user)
+                and self.project.custom_task_lock_ttl
+            ):
+                lock_ttl = self.project.custom_task_lock_ttl
             expire_at = now() + datetime.timedelta(seconds=lock_ttl)
             try:
                 task_lock = TaskLock.objects.get(task=self, user=user)
@@ -781,6 +803,7 @@ class TaskLock(models.Model):
         on_delete=models.CASCADE,
         help_text='User who locked this task',
     )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True, help_text='Creation time', null=True)
 
 
 class AnnotationDraft(models.Model):
@@ -1099,7 +1122,7 @@ class FailedPrediction(models.Model):
 class PredictionMeta(models.Model):
     prediction = models.OneToOneField(
         'Prediction',
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='meta',
@@ -1107,7 +1130,7 @@ class PredictionMeta(models.Model):
     )
     failed_prediction = models.OneToOneField(
         'FailedPrediction',
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='meta',
@@ -1291,21 +1314,7 @@ def remove_predictions_from_project(sender, instance, **kwargs):
     """Remove predictions counters"""
     instance.task.total_predictions = instance.task.predictions.all().count() - 1
     instance.task.save(update_fields=['total_predictions'])
-
-    # if there is PredictionMeta object associated with the Prediction object, delete it
-    if hasattr(instance, 'meta'):
-        logger.debug(f'Deleting PredictionMeta object associated with Prediction object {instance.id}')
-        instance.meta.delete()
-
     logger.debug(f'Updated total_predictions for {instance.task.id}.')
-
-
-@receiver(pre_delete, sender=FailedPrediction)
-def remove_failed_predictions_from_project(sender, instance, **kwargs):
-    # if there is PredictionMeta object associated with the Prediction object, delete it
-    if hasattr(instance, 'meta'):
-        logger.debug(f'Deleting PredictionMeta object associated with Prediction object {instance.id}')
-        instance.meta.delete()
 
 
 @receiver(post_save, sender=Prediction)

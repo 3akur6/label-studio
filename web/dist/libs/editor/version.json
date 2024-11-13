@@ -1,6 +1,6 @@
 {
-  "message": "feat: LEAP-1440: Allow to attach a region to a new comment (#6400)",
-  "commit": "4ff9df53619002ad17e901e568c829764ebca205",
-  "date": "2024-09-24T13:45:27.000Z",
+  "message": "feat: OPTIC-1245: Add HeidiTips as a json file within source control (#6624)",
+  "commit": "479aa9fab770e83b67ca0e54bd8fc21a2d1cb66b",
+  "date": "2024-11-08T22:42:41.000Z",
   "branch": "develop"
 }
