@@ -124,7 +124,12 @@ const Model = types.model({
     "packet",
     "timelinelabels",
   ]),
-});
+}).views((self) => ({
+    // Indicates that it could exist without information about objects, taskData and regions
+    get isIndependent() {
+      return true;
+    },
+}));
 
 const ViewModel = types.compose("ViewModel", TagAttrs, Model, VisibilityMixin, AnnotationMixin);
 

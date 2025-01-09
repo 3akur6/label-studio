@@ -1,6 +1,6 @@
 {
-  "message": "feat: OPTIC-1245: Add HeidiTips as a json file within source control (#6624)",
-  "commit": "479aa9fab770e83b67ca0e54bd8fc21a2d1cb66b",
-  "date": "2024-11-08T22:42:41.000Z",
+  "message": "chore: Update liveContent.json (#6874)",
+  "commit": "40f095ad8fefbdd93cc334c7c8c8d9593a5bf764",
+  "date": "2025-01-08T14:42:22.000Z",
   "branch": "develop"
 }
